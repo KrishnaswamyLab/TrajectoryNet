@@ -1,7 +1,6 @@
 *__pycache__*
 *.pyc
 results/*
-*.png
 *.jpg
 .snakemake
 
