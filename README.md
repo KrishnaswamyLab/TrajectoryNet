@@ -9,6 +9,12 @@ Download code
 ```
 git clone http://github.com/krishanswamylab/TrajectoryNet.git
 ```
+Install required packages
+```
+pip install -r requirements.txt
+```
+
+This code was tested with python 3.8
 
 
 ## Example
@@ -34,9 +40,9 @@ To use a custom dataset expose the coordinates and timepoint information accordi
 If you found this library useful, please consider citing
 ```
 @inproceedings{tong2020trajectorynet,
-  title = {{{TrajectoryNet}}: {{A Dynamic Optimal Transport Network}} for {{Modeling Cellular Dynamics}}},
+  title = {TrajectoryNet: A Dynamic Optimal Transport Network for Modeling Cellular Dynamics},
   shorttitle = {{{TrajectoryNet}}},
-  booktitle = {Proceedings of the 37th {{International Conference}} on {{Machine Learning}}},
+  booktitle = {Proceedings of the 37th International Conference on Machine Learning},
   author = {Tong, Alexander and Huang, Jessie and Wolf, Guy and {van Dijk}, David and Krishnaswamy, Smita},
   year = {2020}
 }
