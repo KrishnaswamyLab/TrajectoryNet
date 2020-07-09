@@ -231,7 +231,8 @@ def train(
     )
 
     best_loss = float("inf")
-    growth_model.eval()
+    if args.use_growth:
+        growth_model.eval()
     end = time.time()
     for itr in range(1, args.niters + 1):
         model.train()
@@ -301,12 +302,13 @@ def train(
                 with torch.no_grad():
                     visualize(device, args, model, itr)
         if itr % args.save_freq == 0:
+            chkpt = {
+                "state_dict": model.state_dict(),
+            }
+            if args.use_growth:
+                chkpt.update({"growth_state_dict": growth_model.state_dict()})
             utils.save_checkpoint(
-                {
-                    # 'args': args,
-                    "state_dict": model.state_dict(),
-                    "growth_state_dict": growth_model.state_dict(),
-                },
+                chkpt,
                 args.save,
                 epoch=itr,
             )
@@ -331,12 +333,13 @@ def train_eval(device, args, model, growth_model, itr, best_loss, logger, full_d
 
     if test_loss.item() < best_loss:
         best_loss = test_loss.item()
+        chkpt = {
+            "state_dict": model.state_dict(),
+        }
+        if args.use_growth:
+            chkpt.update({"growth_state_dict": growth_model.state_dict()})
         torch.save(
-            {
-                # 'args': args,
-                "state_dict": model.state_dict(),
-                "growth_state_dict": growth_model.state_dict(),
-            },
+            chkpt,
             os.path.join(args.save, "checkpt.pth"),
         )
 
@@ -449,6 +452,7 @@ def main(args):
     model = build_model_tabular(args, args.data.get_shape()[0], regularization_fns).to(
         device
     )
+    growth_model = None
     if args.use_growth:
         if args.leaveout_timepoint == -1:
             growth_model_path = (
@@ -463,7 +467,7 @@ def main(args):
         else:
             print("WARNING: Cannot use growth with this timepoint")
 
-    growth_model = torch.load(growth_model_path, map_location=device)
+        growth_model = torch.load(growth_model_path, map_location=device)
     if args.spectral_norm:
         add_spectral_norm(model)
     set_cnf_options(args, model)
