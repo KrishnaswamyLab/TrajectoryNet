@@ -1,6 +1,6 @@
 # Pytorch Implementation of TrajectoryNet
 
-This library runs code associated with the TrajectoryNet paper
+This library runs code associated with the TrajectoryNet paper.
 
 
 ## Installation
@@ -30,7 +30,18 @@ Run with
 python main.py --dataset EB
 ```
 
-To use a custom dataset expose the coordinates and timepoint information according to the `SCData` class in `dataset.py`
+To use a custom dataset expose the coordinates and timepoint information according to the example jupyter notebooks in the `/notebooks/` folder. 
+
+TrajectoryNet requires the following:
+1. An embedding matrix titled `[embedding_name]` (Cells x Dimensions)
+2. A sample labels array titled `sample_labels` (Cells)
+3. (Optionally) a delta embedding representing RNA velocity titled `delta_[embedding_name]` (Cells x Dimensions)
+
+To run TrajectoryNet with a custom dataset use:
+```
+python main.py --dataset [PATH_TO_NPZ_FILE] --embedding_name [EMBEDDING_NAME]
+```
+
 
 ### References
 [1] Tong, A., Huang, J., Wolf, G., van Dijk, D., and Krishnaswamy, S. TrajectoryNet: A Dynamic Optimal Transport Network for Modeling Cellular Dynamics. In International Conference on Machine Learning, 2020. [[arxiv]](http://arxiv.org/abs/2002.04461)

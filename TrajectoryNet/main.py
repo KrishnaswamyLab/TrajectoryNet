@@ -203,7 +203,7 @@ def compute_loss(device, args, model, growth_model, logger, full_data):
         values -= hinge_value
         values[values < 0] = 0
         density_loss = torch.mean(values)
-        print('Density Loss', density_loss.item())
+        print("Density Loss", density_loss.item())
         losses += density_loss * args.top_k_reg
     losses += interp_loss
     return losses
@@ -308,9 +308,7 @@ def train(
             if args.use_growth:
                 chkpt.update({"growth_state_dict": growth_model.state_dict()})
             utils.save_checkpoint(
-                chkpt,
-                args.save,
-                epoch=itr,
+                chkpt, args.save, epoch=itr,
             )
         end = time.time()
     logger.info("Training has finished.")
@@ -339,8 +337,7 @@ def train_eval(device, args, model, growth_model, itr, best_loss, logger, full_d
         if args.use_growth:
             chkpt.update({"growth_state_dict": growth_model.state_dict()})
         torch.save(
-            chkpt,
-            os.path.join(args.save, "checkpt.pth"),
+            chkpt, os.path.join(args.save, "checkpt.pth"),
         )
 
 
@@ -441,7 +438,7 @@ def main(args):
     if args.use_cpu:
         device = torch.device("cpu")
 
-    args.data = dataset.SCData.factory(args.dataset, args.max_dim)
+    args.data = dataset.SCData.factory(args.dataset, args)
 
     args.timepoints = args.data.get_unique_times()
     # Use maximum timepoint to establish integration_times
@@ -455,15 +452,10 @@ def main(args):
     growth_model = None
     if args.use_growth:
         if args.leaveout_timepoint == -1:
-            growth_model_path = (
-                "../data/externel/growth_model_v2.ckpt"
-            )
+            growth_model_path = "../data/externel/growth_model_v2.ckpt"
         elif args.leaveout_timepoint in [1, 2, 3]:
             assert args.max_dim == 5
-            growth_model_path = (
-                "../data/growth/model_%d"
-                % args.leaveout_timepoint
-            )
+            growth_model_path = "../data/growth/model_%d" % args.leaveout_timepoint
         else:
             print("WARNING: Cannot use growth with this timepoint")
 
@@ -509,5 +501,6 @@ def main(args):
 
 if __name__ == "__main__":
     from parse import parser
+
     args = parser.parse_args()
     main(args)

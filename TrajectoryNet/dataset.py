@@ -121,7 +121,7 @@ class SCData(object):
             plt.plot(path[:, 0], path[:, 1])
         plt.show()
 
-    def factory(name, md):
+    def factory(name, args):
         # Generated Circle datasets
         if name == "CIRCLE":
             return CircleTestData()
@@ -149,18 +149,18 @@ class SCData(object):
             return SklearnData("circles")
 
         if name == "CLARK-PCA":
-            return ClarkData("pcs", max_dim=md)
+            return ClarkData("pcs", max_dim=args.max_dim)
         if name == "CLARK-PHATE":
             return ClarkData("phate")
         if name == "CLARK-UMAP":
-            return ClarkData("original_embedding", max_dim=md)
+            return ClarkData("original_embedding", max_dim=args.max_dim)
 
         if name == "EB":
             return EBData()
         if name == "EB-PHATE":
             return EBData()
         if name == "EB-PCA":
-            return EBData("pcs", max_dim=md)
+            return EBData("pcs", max_dim=args.max_dim)
 
         if name == "CHAFFER":
             return ChafferData()
@@ -177,15 +177,96 @@ class SCData(object):
         if name == "NOONAN":
             return NoonanData()
         if name == "NOONAN-PCA":
-            return NoonanData(max_dim=md)
+            return NoonanData(max_dim=args.max_dim)
 
         if name == "WOT-FDL":
             return SchiebingerData("original_embedding")
         if name == "WOT-PHATE":
             return SchiebingerData("phate")
         if name == "WOT-PCA":
-            return SchiebingerData("pcs", max_dim=md)
-        raise AssertionError("Unknown Dataset: %s" % name)
+            return SchiebingerData("pcs", max_dim=args.max_dim)
+
+        # If none of the above, we assume a path to a .npz file is supplied
+        return CustomData(name, args)
+
+
+class CustomData(SCData):
+    def __init__(self, name, args):
+        super().__init__()
+        self.args = args
+        self.embedding_name = args.embedding_name
+        self.load(name, args.max_dim)
+
+    def load(self, data_file, max_dim):
+        self.data_dict = np.load(data_file, allow_pickle=True)
+        self.labels = self.data_dict["sample_labels"]
+        if self.embedding_name not in self.data_dict.keys():
+            raise ValueError("Unknown embedding name %s" % self.embedding_name)
+        embedding = self.data_dict[self.embedding_name]
+        scaler = StandardScaler()
+        scaler.fit(embedding)
+        self.ncells = embedding.shape[0]
+        assert self.labels.shape[0] == self.ncells
+        # Scale so that embedding is normally distributed
+        self.data = scaler.transform(embedding)
+
+        delta_name = "delta_%s" % self.embedding_name
+        if delta_name not in self.data_dict.keys(): 
+            print("No velocity found for embedding %s skipping velocity" % self.embedding_name)
+            self.use_velocity = False
+        else:
+            delta = self.data_dict[delta_name]
+            assert delta.shape[0] == self.ncells
+            # Normalize ignoring mean from embedding
+            self.velocity = delta / scaler.scale_
+
+        if max_dim is not None and self.data.shape[1] > max_dim:
+            print("Warning: Clipping dimensionality to %d" % max_dim)
+            self.data = self.data[:, :max_dim]
+            if self.use_velocity:
+                self.velocity = self.velocity[:, :max_dim]
+
+    def has_velocity(self):
+        return self.use_velocity
+
+    def known_base_density(self):
+        return False
+
+    def get_data(self):
+        return self.data
+
+    def get_times(self):
+        return self.labels
+
+    def get_unique_times(self):
+        return np.unique(self.labels)
+
+    def get_velocity(self):
+        return self.velocity
+
+    def get_shape(self):
+        return [self.data.shape[1]]
+
+    def get_ncells(self):
+        return self.ncells
+
+    def leaveout_timepoint(self, tp):
+        """ Takes a timepoint label to leaveout
+        Alters data stored in object to leave out all data associated
+        with that timepoint.
+        """
+        if tp < 0:
+            raise RuntimeError("Cannot leaveout negative timepoint %d." % tp)
+        mask = self.labels != tp
+        print("Leaving out %d samples from sample %d" % (np.sum(~mask), tp))
+        self.labels = self.labels[mask]
+        self.data = self.data[mask]
+        self.velocity = self.velocity[mask]
+        self.ncells = np.sum(mask)
+
+    def sample_index(self, n, label_subset):
+        arr = np.arange(self.ncells)[self.labels == label_subset]
+        return np.random.choice(arr, size=n)
 
 
 class EBData(SCData):

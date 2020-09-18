@@ -109,3 +109,9 @@ parser.add_argument(
     "--top_k_reg", type=float, default=0.0, help="density following regularization"
 )
 parser.add_argument("--training_noise", type=float, default=0.1)
+parser.add_argument(
+    "--embedding_name",
+    type=str,
+    default="pca",
+    help="choose embedding name to perform TrajectoryNet on",
+)
