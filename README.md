@@ -43,6 +43,9 @@ python main.py --dataset [PATH_TO_NPZ_FILE] --embedding_name [EMBEDDING_NAME]
 ```
 
 
+See `notebooks/EB-Eval.ipynb` for an example on how to use TrajectoryNet on a PCA embedding to get trajectories in the gene space.
+
+
 ### References
 [1] Tong, A., Huang, J., Wolf, G., van Dijk, D., and Krishnaswamy, S. TrajectoryNet: A Dynamic Optimal Transport Network for Modeling Cellular Dynamics. In International Conference on Machine Learning, 2020. [[arxiv]](http://arxiv.org/abs/2002.04461)
 
