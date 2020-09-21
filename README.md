@@ -47,7 +47,7 @@ See `notebooks/EB-Eval.ipynb` for an example on how to use TrajectoryNet on a PC
 
 
 ### References
-[1] Tong, A., Huang, J., Wolf, G., van Dijk, D., and Krishnaswamy, S. TrajectoryNet: A Dynamic Optimal Transport Network for Modeling Cellular Dynamics. In International Conference on Machine Learning, 2020. [[arxiv]](http://arxiv.org/abs/2002.04461)
+[1] Tong, A., Huang, J., Wolf, G., van Dijk, D., and Krishnaswamy, S. TrajectoryNet: A Dynamic Optimal Transport Network for Modeling Cellular Dynamics. In International Conference on Machine Learning, 2020. [[arxiv]](http://arxiv.org/abs/2002.04461) [[ICML]](https://proceedings.icml.cc/paper/2020/hash/9d740bd0f36aaa312c8d504e28c42163)
 
 ---
 
