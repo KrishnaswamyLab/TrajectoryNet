@@ -7,7 +7,7 @@ This library runs code associated with the TrajectoryNet paper.
 
 Download code
 ```
-git clone http://github.com/krishanswamylab/TrajectoryNet.git
+git clone http://github.com/KrishnaswamyLab/TrajectoryNet.git
 ```
 Install required packages
 ```
