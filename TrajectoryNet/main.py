@@ -389,7 +389,6 @@ def plot_output(device, args, model):
         end_times=args.int_tps,
         ntimes=100,
     )
-    return
     save_trajectory(
         args.data.base_density(),
         args.data.base_sample(),
