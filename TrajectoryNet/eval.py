@@ -309,7 +309,7 @@ def main(args):
     if args.use_cpu:
         device = torch.device("cpu")
 
-    data = dataset.SCData.factory(args.dataset, args.max_dim)
+    data = dataset.SCData.factory(args.dataset, args)
 
     args.timepoints = data.get_unique_times()
 
@@ -321,9 +321,10 @@ def main(args):
     model = build_model_tabular(args, data.get_shape()[0], regularization_fns).to(
         device
     )
-    growth_model_path = data.get_growth_net_path()
-    #growth_model_path = "/home/atong/TrajectoryNet/data/externel/growth_model_v2.ckpt"
-    growth_model = torch.load(growth_model_path, map_location=device)
+    if args.use_growth:
+        growth_model_path = data.get_growth_net_path()
+        #growth_model_path = "/home/atong/TrajectoryNet/data/externel/growth_model_v2.ckpt"
+        growth_model = torch.load(growth_model_path, map_location=device)
     if args.spectral_norm:
         add_spectral_norm(model)
     set_cnf_options(args, model)
@@ -340,8 +341,8 @@ def main(args):
     args.int_tps = (np.arange(max(args.timepoints) + 1) + 1.0) * args.time_scale
 
     print('integrating backwards')
-    end_time_data = data.data_dict['mphate_expression']
-    #end_time_data = data.get_data()[args.data.get_times()==np.max(args.data.get_times())]
+    #end_time_data = data.data_dict[args.embedding_name]
+    end_time_data = data.get_data()[args.data.get_times()==np.max(args.data.get_times())]
     #np.random.permutation(end_time_data)
     #rand_idx = np.random.randint(end_time_data.shape[0], size=5000)
     #end_time_data = end_time_data[rand_idx,:]
