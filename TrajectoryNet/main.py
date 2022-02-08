@@ -13,24 +13,33 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from lib.growth_net import GrowthNet
-import lib.utils as utils
-from lib.visualize_flow import visualize_transform
-from lib.viz_scrna import save_trajectory, trajectory_to_video, save_vectors
-from lib.viz_scrna import save_trajectory_density
+from TrajectoryNet.lib.growth_net import GrowthNet
+from TrajectoryNet.lib import utils
+from TrajectoryNet.lib.visualize_flow import visualize_transform
+from TrajectoryNet.lib.viz_scrna import (
+    save_trajectory,
+    trajectory_to_video,
+    save_vectors,
+)
+from TrajectoryNet.lib.viz_scrna import save_trajectory_density
 
 
 # from train_misc import standard_normal_logprob
-from train_misc import set_cnf_options, count_nfe, count_parameters
-from train_misc import count_total_time
-from train_misc import add_spectral_norm, spectral_norm_power_iteration
-from train_misc import create_regularization_fns, get_regularization
-from train_misc import append_regularization_to_log
-from train_misc import build_model_tabular
+from TrajectoryNet.train_misc import (
+    set_cnf_options,
+    count_nfe,
+    count_parameters,
+    count_total_time,
+    add_spectral_norm,
+    spectral_norm_power_iteration,
+    create_regularization_fns,
+    get_regularization,
+    append_regularization_to_log,
+    build_model_tabular,
+)
 
-import eval_utils
-
-import dataset
+from TrajectoryNet import dataset
+from TrajectoryNet.parse import parser
 
 matplotlib.use("Agg")
 
@@ -308,7 +317,9 @@ def train(
             if args.use_growth:
                 chkpt.update({"growth_state_dict": growth_model.state_dict()})
             utils.save_checkpoint(
-                chkpt, args.save, epoch=itr,
+                chkpt,
+                args.save,
+                epoch=itr,
             )
         end = time.time()
     logger.info("Training has finished.")
@@ -337,7 +348,8 @@ def train_eval(device, args, model, growth_model, itr, best_loss, logger, full_d
         if args.use_growth:
             chkpt.update({"growth_state_dict": growth_model.state_dict()})
         torch.save(
-            chkpt, os.path.join(args.save, "checkpt.pth"),
+            chkpt,
+            os.path.join(args.save, "checkpt.pth"),
         )
 
 
@@ -499,7 +511,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    from parse import parser
 
     args = parser.parse_args()
     main(args)

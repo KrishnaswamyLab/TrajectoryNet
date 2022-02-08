@@ -4,25 +4,28 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib
 
-from lib.growth_net import GrowthNet
-import lib.utils as utils
-from lib.viz_scrna import trajectory_to_video, save_vectors
-from lib.viz_scrna import (
+from TrajectoryNet import dataset, eval_utils
+from TrajectoryNet.parse import parser
+from TrajectoryNet.lib.growth_net import GrowthNet
+from TrajectoryNet.lib.viz_scrna import trajectory_to_video, save_vectors
+from TrajectoryNet.lib.viz_scrna import (
     save_trajectory_density,
     save_2d_trajectory,
     save_2d_trajectory_v2,
 )
 
-# from train_misc import standard_normal_logprob
-from train_misc import set_cnf_options, count_nfe, count_parameters
-from train_misc import count_total_time
-from train_misc import add_spectral_norm, spectral_norm_power_iteration
-from train_misc import create_regularization_fns, get_regularization
-from train_misc import append_regularization_to_log
-from train_misc import build_model_tabular
-
-import eval_utils
-import dataset
+from TrajectoryNet.train_misc import (
+    set_cnf_options,
+    count_nfe,
+    count_parameters,
+    count_total_time,
+    add_spectral_norm,
+    spectral_norm_power_iteration,
+    create_regularization_fns,
+    get_regularization,
+    append_regularization_to_log,
+    build_model_tabular,
+)
 
 
 def makedirs(dirname):
@@ -274,10 +277,10 @@ def plot_output(device, args, model, data):
     trajectory_to_video(density_dir)
 
 
-
-def integrate_backwards(end_samples, model, savedir, ntimes=100, memory=0.1, device='cpu'):
-    """ Integrate some samples backwards and save the results.
-    """
+def integrate_backwards(
+    end_samples, model, savedir, ntimes=100, memory=0.1, device="cpu"
+):
+    """Integrate some samples backwards and save the results."""
     with torch.no_grad():
         z = torch.from_numpy(end_samples).type(torch.float32).to(device)
         zero = torch.zeros(z.shape[0], 1).to(z)
@@ -299,7 +302,7 @@ def integrate_backwards(end_samples, model, savedir, ntimes=100, memory=0.1, dev
             deltas.append(delta_logp)
         zs = torch.stack(zs, 0)
         zs = zs.cpu().numpy()
-        np.save(os.path.join(savedir, 'backward_trajectories.npy'), zs)
+        np.save(os.path.join(savedir, "backward_trajectories.npy"), zs)
 
 
 def main(args):
@@ -323,7 +326,7 @@ def main(args):
     )
     if args.use_growth:
         growth_model_path = data.get_growth_net_path()
-        #growth_model_path = "/home/atong/TrajectoryNet/data/externel/growth_model_v2.ckpt"
+        # growth_model_path = "/home/atong/TrajectoryNet/data/externel/growth_model_v2.ckpt"
         growth_model = torch.load(growth_model_path, map_location=device)
     if args.spectral_norm:
         add_spectral_norm(model)
@@ -332,27 +335,29 @@ def main(args):
     state_dict = torch.load(args.save + "/checkpt.pth", map_location=device)
     model.load_state_dict(state_dict["state_dict"])
 
-    #plot_output(device, args, model, data)
-    #exit()
+    # plot_output(device, args, model, data)
+    # exit()
     # get_trajectory_samples(device, model, data)
 
     args.data = data
     args.timepoints = args.data.get_unique_times()
     args.int_tps = (np.arange(max(args.timepoints) + 1) + 1.0) * args.time_scale
 
-    print('integrating backwards')
-    #end_time_data = data.data_dict[args.embedding_name]
-    end_time_data = data.get_data()[args.data.get_times()==np.max(args.data.get_times())]
-    #np.random.permutation(end_time_data)
-    #rand_idx = np.random.randint(end_time_data.shape[0], size=5000)
-    #end_time_data = end_time_data[rand_idx,:]
+    print("integrating backwards")
+    # end_time_data = data.data_dict[args.embedding_name]
+    end_time_data = data.get_data()[
+        args.data.get_times() == np.max(args.data.get_times())
+    ]
+    # np.random.permutation(end_time_data)
+    # rand_idx = np.random.randint(end_time_data.shape[0], size=5000)
+    # end_time_data = end_time_data[rand_idx,:]
     integrate_backwards(end_time_data, model, args.save, ntimes=100, device=device)
     exit()
     losses_list = []
-    #for factor in np.linspace(0.05, 0.95, 19):
-    #for factor in np.linspace(0.91, 0.99, 9):
-    if args.dataset == 'CHAFFER':   # Do timepoint adjustment
-        print('adjusting_timepoints')
+    # for factor in np.linspace(0.05, 0.95, 19):
+    # for factor in np.linspace(0.91, 0.99, 9):
+    if args.dataset == "CHAFFER":  # Do timepoint adjustment
+        print("adjusting_timepoints")
         lt = args.leaveout_timepoint
         if lt == 1:
             factor = 0.6799872494335812
@@ -361,22 +366,22 @@ def main(args):
             factor = 0.2905983814032348
             factor = 0.01
         else:
-            raise RuntimeError('Unknown timepoint %d' % args.leaveout_timepoint)
-        args.int_tps[lt] = (1 - factor) * args.int_tps[lt-1] + factor * args.int_tps[lt+1]
+            raise RuntimeError("Unknown timepoint %d" % args.leaveout_timepoint)
+        args.int_tps[lt] = (1 - factor) * args.int_tps[lt - 1] + factor * args.int_tps[
+            lt + 1
+        ]
     losses = eval_utils.evaluate_kantorovich_v2(device, args, model)
     losses_list.append(losses)
     print(np.array(losses_list))
-    np.save(os.path.join(args.save, 'emd_list'), np.array(losses_list))
-    #zs = np.load(os.path.join(args.save, 'backward_trajectories'))
-    #losses = eval_utils.evaluate_mse(device, args, model)
-    #losses = eval_utils.evaluate_kantorovich(device, args, model)
-    #print(losses)
+    np.save(os.path.join(args.save, "emd_list"), np.array(losses_list))
+    # zs = np.load(os.path.join(args.save, 'backward_trajectories'))
+    # losses = eval_utils.evaluate_mse(device, args, model)
+    # losses = eval_utils.evaluate_kantorovich(device, args, model)
+    # print(losses)
     # eval_utils.generate_samples(device, args, model, growth_model, timepoint=args.timepoints[-1])
     # eval_utils.calculate_path_length(device, args, model, data, args.int_tps[-1])
 
 
 if __name__ == "__main__":
-    from parse import parser
-
     args = parser.parse_args()
     main(args)

@@ -20,7 +20,7 @@ def load_data_full():
 
 
 def get_transform_matrix(gamma, a, epsilon=1e-8):
-    """ Return matrix such that T @ a = b 
+    """Return matrix such that T @ a = b
     gamma : gamma @ 1 = a; gamma^T @ 1 = b
     """
     return (np.diag(1.0 / (a + epsilon)) @ gamma).T

@@ -3,11 +3,11 @@ import numpy as np
 import os
 import torch
 
-from optimal_transport.emd import earth_mover_distance
+from .optimal_transport.emd import earth_mover_distance
 
 
 def generate_samples(device, args, model, growth_model, n=10000, timepoint=None):
-    """ generates samples using model and base density
+    """generates samples using model and base density
 
     This is useful for measuring the wasserstein distance between the
     predicted distribution and the true distribution for evaluation
@@ -67,8 +67,7 @@ def generate_samples(device, args, model, growth_model, n=10000, timepoint=None)
 
 
 def calculate_path_length(device, args, model, data, end_time, n_pts=10000):
-    """ Calculates the total length of the path from time 0 to timepoint
-    """
+    """Calculates the total length of the path from time 0 to timepoint"""
     # z_samples = torch.tensor(data.get_data()).type(torch.float32).to(device)
     z_samples = data.base_sample()(n_pts, *data.get_shape()).to(device)
     model.eval()
@@ -138,7 +137,7 @@ def evaluate_mse(device, args, model, growth_model=None):
 
 
 def evaluate_kantorovich_v2(device, args, model, growth_model=None):
-    """ Eval the model via kantorovich distance on leftout timepoint
+    """Eval the model via kantorovich distance on leftout timepoint
 
     v2 computes samples from subsequent timepoint instead of base distribution.
     this is arguably a fairer comparison to other methods such as WOT which are
@@ -201,7 +200,7 @@ def evaluate_kantorovich_v2(device, args, model, growth_model=None):
 
 
 def evaluate_kantorovich(device, args, model, growth_model=None, n=10000):
-    """ Eval the model via kantorovich distance on all timepoints
+    """Eval the model via kantorovich distance on all timepoints
 
     compute samples forward from the starting parametric distribution keeping track
     of growth rate to scale the final distribution.
@@ -295,7 +294,7 @@ def evaluate_kantorovich(device, args, model, growth_model=None, n=10000):
 
 
 def evaluate(device, args, model, growth_model=None):
-    """ Eval the model via negative log likelihood on all timepoints
+    """Eval the model via negative log likelihood on all timepoints
 
     Compute loss by integrating backwards from the last time step
     At each time step integrate back one time step, and concatenate that

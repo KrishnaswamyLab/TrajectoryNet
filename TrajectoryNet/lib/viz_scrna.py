@@ -351,11 +351,11 @@ def save_trajectory_density(prior_logdensity, model, data_samples, savedir, ntim
                         #cmap='Spectral', 
                         cmap=plt.cm.Spectral,
                         orientation='horizontal')
-                cb.set_ticks(np.linspace(0,1,4))
+                #cb.set_ticks(np.linspace(0,1,4))
                 #cb.set_ticklabels(['48HR', 'Day 12', 'Day 18', 'Day 30'])
                 #cb.set_ticklabels(['E12.5', 'E14.5', 'E16.0', 'E17.5'])
                 #cb.set_ticks(np.linspace(0,1,5))
-                cb.set_ticklabels(np.arange(len(end_times)))
+                #cb.set_ticklabels(np.arange(len(end_times)))
                 ax.axvline(t / grid_z_traj.shape[0], c='k', linewidth=15)
                 ax.set_title('Time')
 

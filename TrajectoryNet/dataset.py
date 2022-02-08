@@ -14,7 +14,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 class SCData(object):
-    """ Base Class for single cell like trajectory data """
+    """Base Class for single cell like trajectory data"""
 
     def __init__(self):
         super().__init__()
@@ -48,7 +48,7 @@ class SCData(object):
         raise NotImplementedError
 
     def known_base_density(self):
-        """ Returns if the dataset starts from a known base density.
+        """Returns if the dataset starts from a known base density.
 
         Generally single cell datasets do not have a known base density
         where generated datasets do.
@@ -211,8 +211,11 @@ class CustomData(SCData):
         self.data = scaler.transform(embedding)
 
         delta_name = "delta_%s" % self.embedding_name
-        if delta_name not in self.data_dict.keys(): 
-            print("No velocity found for embedding %s skipping velocity" % self.embedding_name)
+        if delta_name not in self.data_dict.keys():
+            print(
+                "No velocity found for embedding %s skipping velocity"
+                % self.embedding_name
+            )
             self.use_velocity = False
         else:
             delta = self.data_dict[delta_name]
@@ -251,7 +254,7 @@ class CustomData(SCData):
         return self.ncells
 
     def leaveout_timepoint(self, tp):
-        """ Takes a timepoint label to leaveout
+        """Takes a timepoint label to leaveout
         Alters data stored in object to leave out all data associated
         with that timepoint.
         """
@@ -337,7 +340,7 @@ class EBData(SCData):
         return self.ncells
 
     def leaveout_timepoint(self, tp):
-        """ Takes a timepoint label to leaveout
+        """Takes a timepoint label to leaveout
         Alters data stored in object to leave out all data associated
         with that timepoint.
         """
@@ -427,7 +430,7 @@ class NoonanData(EBData):
 
 
 class SchiebingerData(EBData):
-    """ Load data from Schiebinger et al. (Cell 2019)
+    """Load data from Schiebinger et al. (Cell 2019)
     39 timepoint samples. original embedding uses a force directed layout
     """
 
@@ -458,7 +461,7 @@ class ClarkData(EBData):
         return False
 
     def load(self, data_file, max_dim):
-        """ Separates replicates from main trajectory.
+        """Separates replicates from main trajectory.
 
         TODO: There may be some leakage of replicates by the phate coordinates used
         """
@@ -478,7 +481,7 @@ class ClarkData(EBData):
 
 
 class CircleTestData(EBData):
-    """ Implements the circle dataset """
+    """Implements the circle dataset"""
 
     def __init__(self):
         super().__init__()
@@ -503,7 +506,7 @@ class CircleTestData(EBData):
 
 
 class CircleTestDataV2(EBData):
-    """ Implements the circle dataset.
+    """Implements the circle dataset.
 
     But has an anlalytical base density and two timepoints instead of 3.
     """
@@ -563,11 +566,11 @@ class CircleTestDataV2(EBData):
 
 
 class CircleTestDataV3(EBData):
-    """ Implements the curvy tree dataset.
+    """Implements the curvy tree dataset.
 
     Has an analytical base density and two timepoints instead of 3.
-    Where the base distribution is a half-gaussian at theta=0 and the end 
-    distribution is a half-gaussian at theta=2*pi. Both truncated below y=0. 
+    Where the base distribution is a half-gaussian at theta=0 and the end
+    distribution is a half-gaussian at theta=2*pi. Both truncated below y=0.
     this is to experiment with the standard deviation of theta to see if
     we can learn a flow along the circle instead of across it.
     The hope is that the default flow is across the circle where we can
@@ -646,7 +649,7 @@ class CircleTestDataV3(EBData):
 
 
 class CircleTestDataV4(CircleTestDataV3):
-    """ BROKEN """
+    """BROKEN"""
 
     def __init__(self):
         super().__init__()
@@ -862,7 +865,7 @@ class TreeTestData(CircleTestDataV3):
 
 
 class CircleTestDataV5(TreeTestData):
-    """ This builds on version 3 to include a better middle timepoint.
+    """This builds on version 3 to include a better middle timepoint.
     Where instead of being parametrically defined, the middle timepoint is
     defined in terms of the interpolant between the first and last
     timepoints along the manifold.
@@ -961,15 +964,15 @@ class CircleTestDataV5(TreeTestData):
 
 
 class CycleDataset(TreeTestData):
-    """ The idea here is that the distribution does not change, 
+    """The idea here is that the distribution does not change,
     but there is movement around the circle over time.
-    
-    First we define a rotation speed with a uniform distribution around the circle. 
-    
+
+    First we define a rotation speed with a uniform distribution around the circle.
+
     We generate this by taking a uniform distribution then rotating it 1/4 way around the circle.
-    
+
     The interpolation is then 1/8 of the way around the circle. We need a new evaluation mechanism to
-    be able to handle this case, as distribution level, all are approximately zero difference. 
+    be able to handle this case, as distribution level, all are approximately zero difference.
     """
 
     def __init__(self, shift=0.1, r_std=0.1):

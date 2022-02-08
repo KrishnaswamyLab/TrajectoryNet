@@ -53,7 +53,7 @@ def _mix_rbf_kernel(X, Y, sigma_list):
 
     K = 0.0
     for sigma in sigma_list:
-        gamma = 1.0 / (2 * sigma ** 2)
+        gamma = 1.0 / (2 * sigma**2)
         K += torch.exp(-gamma * exponent)
 
     return K[:m, :m], K[:m, m:], K[m:, m:], len(sigma_list)
@@ -130,7 +130,7 @@ def _mmd2_and_variance(K_XX, K_XY, K_YY, const_diagonal=False, biased=False):
     if const_diagonal is not False:
         diag_X = diag_Y = const_diagonal
         sum_diag_X = sum_diag_Y = m * const_diagonal
-        sum_diag2_X = sum_diag2_Y = m * const_diagonal ** 2
+        sum_diag2_X = sum_diag2_Y = m * const_diagonal**2
     else:
         diag_X = torch.diag(K_XX)  # (m,)
         diag_Y = torch.diag(K_YY)  # (m,)
@@ -148,9 +148,9 @@ def _mmd2_and_variance(K_XX, K_XY, K_YY, const_diagonal=False, biased=False):
     Kt_YY_sum = Kt_YY_sums.sum()  # e^T * \tilde{K}_YY * e
     K_XY_sum = K_XY_sums_0.sum()  # e^T * K_{XY} * e
 
-    Kt_XX_2_sum = (K_XX ** 2).sum() - sum_diag2_X  # \| \tilde{K}_XX \|_F^2
-    Kt_YY_2_sum = (K_YY ** 2).sum() - sum_diag2_Y  # \| \tilde{K}_YY \|_F^2
-    K_XY_2_sum = (K_XY ** 2).sum()  # \| K_{XY} \|_F^2
+    Kt_XX_2_sum = (K_XX**2).sum() - sum_diag2_X  # \| \tilde{K}_XX \|_F^2
+    Kt_YY_2_sum = (K_YY**2).sum() - sum_diag2_Y  # \| \tilde{K}_YY \|_F^2
+    K_XY_2_sum = (K_XY**2).sum()  # \| K_{XY} \|_F^2
 
     if biased:
         mmd2 = (
@@ -167,7 +167,7 @@ def _mmd2_and_variance(K_XX, K_XY, K_YY, const_diagonal=False, biased=False):
 
     var_est = (
         2.0
-        / (m ** 2 * (m - 1.0) ** 2)
+        / (m**2 * (m - 1.0) ** 2)
         * (
             2 * Kt_XX_sums.dot(Kt_XX_sums)
             - Kt_XX_2_sum
@@ -175,16 +175,16 @@ def _mmd2_and_variance(K_XX, K_XY, K_YY, const_diagonal=False, biased=False):
             - Kt_YY_2_sum
         )
         - (4.0 * m - 6.0)
-        / (m ** 3 * (m - 1.0) ** 3)
-        * (Kt_XX_sum ** 2 + Kt_YY_sum ** 2)
+        / (m**3 * (m - 1.0) ** 3)
+        * (Kt_XX_sum**2 + Kt_YY_sum**2)
         + 4.0
         * (m - 2.0)
-        / (m ** 3 * (m - 1.0) ** 2)
+        / (m**3 * (m - 1.0) ** 2)
         * (K_XY_sums_1.dot(K_XY_sums_1) + K_XY_sums_0.dot(K_XY_sums_0))
-        - 4.0 * (m - 3.0) / (m ** 3 * (m - 1.0) ** 2) * (K_XY_2_sum)
-        - (8 * m - 12) / (m ** 5 * (m - 1)) * K_XY_sum ** 2
+        - 4.0 * (m - 3.0) / (m**3 * (m - 1.0) ** 2) * (K_XY_2_sum)
+        - (8 * m - 12) / (m**5 * (m - 1)) * K_XY_sum**2
         + 8.0
-        / (m ** 3 * (m - 1.0))
+        / (m**3 * (m - 1.0))
         * (
             1.0 / m * (Kt_XX_sum + Kt_YY_sum) * K_XY_sum
             - Kt_XX_sums.dot(K_XY_sums_1)
