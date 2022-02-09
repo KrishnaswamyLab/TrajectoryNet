@@ -51,10 +51,10 @@ To run TrajectoryNet on the `S Curve` example in the paper.  To use a
 custom dataset expose the coordinates and timepoint information according
 to the example jupyter notebooks in the `/notebooks/` folder.
 
-If you have an `AnnData` object then take a look at
+If you have an `AnnData <https://anndata.readthedocs.io>`_ object then take a look at
 `notebooks/Example_Anndata_to_TrajectoryNet.ipynb
-<https://github.com/KrishnaswamyLab/TrajectoryNet/tree/master/notebooks>_`,
-which shows how to load one of the example `scvelo` anndata objects into
+<https://github.com/KrishnaswamyLab/TrajectoryNet/tree/master/notebooks>`_,
+which shows how to load one of the example `scvelo <https://scvelo.readthedocs.io>`_ anndata objects into
 TrajectoryNet. Alternatively you can use the custom (compressed) format for
 TrajectoryNet as described below.
 
