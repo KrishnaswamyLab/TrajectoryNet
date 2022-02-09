@@ -7,6 +7,7 @@ install_requires = [
     "matplotlib>=3.2.1",
     "numpy>=1.18.4",
     "POT>=0.7.0",
+    "scanpy",
     "scikit-learn>=0.23.1",
     "scipy>=1.4.1",
     "torch>=1.5.0",

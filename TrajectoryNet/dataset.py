@@ -3,7 +3,6 @@
 Loads datasets into uniform format for learning continuous flows
 
 """
-import re
 import math
 import numpy as np
 import torch
@@ -19,9 +18,6 @@ class SCData(object):
     def __init__(self):
         super().__init__()
         self.val_labels = []
-
-    def has_validation_samples(self):
-        return False
 
     def load(self):
         raise NotImplementedError
@@ -65,6 +61,9 @@ class SCData(object):
     def base_sample(self):
         return torch.randn
 
+    def get_shape(self):
+        return [self.data.shape[1]]
+
     def plot_density(self):
         import matplotlib.pyplot as plt
 
@@ -74,7 +73,7 @@ class SCData(object):
         xx = torch.from_numpy(xx).type(torch.float32)
         yy = torch.from_numpy(yy).type(torch.float32)
         z_grid = torch.cat([xx.reshape(-1, 1), yy.reshape(-1, 1)], 1)
-        logp_grid = data.base_density()(z_grid)
+        logp_grid = self.base_density()(z_grid)
         plt.pcolormesh(xx, yy, np.exp(logp_grid.numpy()).reshape(npts, npts))
         plt.show()
 
@@ -84,7 +83,7 @@ class SCData(object):
 
         nbase = 5000
         all_data = np.concatenate(
-            [data.get_data(), data.base_sample()(nbase, self.get_shape()[0]).numpy()],
+            [self.get_data(), self.base_sample()(nbase, self.get_shape()[0]).numpy()],
             axis=0,
         )
         lbs = np.concatenate([data.get_times(), np.repeat(["Base"], nbase)])
@@ -123,14 +122,8 @@ class SCData(object):
 
     def factory(name, args):
         # Generated Circle datasets
-        if name == "CIRCLE":
-            return CircleTestData()
-        if name == "CIRCLE2":
-            return CircleTestDataV2()
         if name == "CIRCLE3":
             return CircleTestDataV3()
-        if name == "CIRCLE4":
-            return CircleTestDataV4()
         if name == "CIRCLE5":
             return CircleTestDataV5()
         if name == "TREE":
@@ -148,13 +141,6 @@ class SCData(object):
         if name == "CIRCLES":
             return SklearnData("circles")
 
-        if name == "CLARK-PCA":
-            return ClarkData("pcs", max_dim=args.max_dim)
-        if name == "CLARK-PHATE":
-            return ClarkData("phate")
-        if name == "CLARK-UMAP":
-            return ClarkData("original_embedding", max_dim=args.max_dim)
-
         if name == "EB":
             return EBData()
         if name == "EB-PHATE":
@@ -162,32 +148,44 @@ class SCData(object):
         if name == "EB-PCA":
             return EBData("pcs", max_dim=args.max_dim)
 
-        if name == "CHAFFER":
-            return ChafferData()
-        if name == "CHAFFER-PHATE":
-            return ChafferData(embedding_name="phate")
-        if name == "CHAFFER-PHATE-SMALL":
-            return ChafferData(embedding_name="phate-small")
-
-        if name == "WNV":
-            return WNVData()
-        if name == "WNV-PHATE":
-            return WNVData(embedding_name="phate")
-
-        if name == "NOONAN":
-            return NoonanData()
-        if name == "NOONAN-PCA":
-            return NoonanData(max_dim=args.max_dim)
-
-        if name == "WOT-FDL":
-            return SchiebingerData("original_embedding")
-        if name == "WOT-PHATE":
-            return SchiebingerData("phate")
-        if name == "WOT-PCA":
-            return SchiebingerData("pcs", max_dim=args.max_dim)
-
         # If none of the above, we assume a path to a .npz file is supplied
-        return CustomData(name, args)
+        if name.endswith(".h5ad"):
+            return CustomAnnDataFromFile(name, args)
+        if name.endswith(".npz"):
+            return CustomData(name, args)
+        
+        raise KeyError(f"Unknown dataset name {name}")
+
+
+def _get_data_points(adata, basis) -> np.ndarray:
+    """
+    Returns the data points corrseponding to the selected basis.
+    """
+    if basis in adata.obsm.keys():
+        basis_key = basis
+    elif f"X_{basis}" in adata.obsm.keys():
+        basis_key = f"X_{basis}"
+    else:
+        raise KeyError(
+            f"Could not find entry in `obsm` for '{basis}'.\n"
+            f"Available keys are: {list(adata.obsm.keys())}."
+        )
+
+    data_points = np.array(adata.obsm[basis_key])
+    velocity_points = None
+
+    if f"velocity_{basis}" in adata.obsm.keys():
+        velocity_basis_key = f"velocity_{basis}"
+        velocity_points = np.array(adata.obsm[velocity_basis_key])
+    else:
+        print(
+            f"Could not find entry in `obsm` for 'velocity_{basis}'.\n"
+            f"Available keys are: {list(adata.obsm.keys())}.\n"
+            f"Assuming no velocity data."
+        )
+
+    return data_points, velocity_points
+
 
 
 class CustomData(SCData):
@@ -202,13 +200,14 @@ class CustomData(SCData):
         self.labels = self.data_dict["sample_labels"]
         if self.embedding_name not in self.data_dict.keys():
             raise ValueError("Unknown embedding name %s" % self.embedding_name)
-        embedding = self.data_dict[self.embedding_name]
-        scaler = StandardScaler()
-        scaler.fit(embedding)
-        self.ncells = embedding.shape[0]
+        self.data = self.data_dict[self.embedding_name]
+        if self.args.whiten:
+            scaler = StandardScaler()
+            scaler.fit(self.data)
+            self.data = scaler.transform(self.data)
+        self.ncells = self.data.shape[0]
         assert self.labels.shape[0] == self.ncells
         # Scale so that embedding is normally distributed
-        self.data = scaler.transform(embedding)
 
         delta_name = "delta_%s" % self.embedding_name
         if delta_name not in self.data_dict.keys():
@@ -218,10 +217,11 @@ class CustomData(SCData):
             )
             self.use_velocity = False
         else:
-            delta = self.data_dict[delta_name]
-            assert delta.shape[0] == self.ncells
+            self.velocity = self.data_dict[delta_name]
+            assert self.velocity.shape[0] == self.ncells
             # Normalize ignoring mean from embedding
-            self.velocity = delta / scaler.scale_
+            if self.args.whiten:
+                self.velocity = self.velocity / scaler.scale_
 
         if max_dim is not None and self.data.shape[1] > max_dim:
             print("Warning: Clipping dimensionality to %d" % max_dim)
@@ -261,7 +261,7 @@ class CustomData(SCData):
         if tp < 0:
             raise RuntimeError("Cannot leaveout negative timepoint %d." % tp)
         mask = self.labels != tp
-        print("Leaving out %d samples from sample %d" % (np.sum(~mask), tp))
+        print(f"Leaving out {np.sum(~mask)} samples from sample tp")
         self.labels = self.labels[mask]
         self.data = self.data[mask]
         self.velocity = self.velocity[mask]
@@ -270,6 +270,44 @@ class CustomData(SCData):
     def sample_index(self, n, label_subset):
         arr = np.arange(self.ncells)[self.labels == label_subset]
         return np.random.choice(arr, size=n)
+
+
+class CustomAnnData(CustomData):
+    def __init__(self, adata, args):
+        self.args = args
+        self.adata = adata
+        self.load()
+
+    def load(self):
+        self.labels = np.array(self.adata.obs["sample_labels"])
+        self.data, self.velocity = _get_data_points(self.adata, self.args.embedding_name)
+
+        if self.args.whiten:
+            scaler = StandardScaler()
+            scaler.fit(self.data)
+            self.data = scaler.transform(self.data)
+            if self.velocity is not None:
+                self.velocity = self.velocity / scaler.scale_
+        self.use_velocity = self.velocity is not None
+
+        self.ncells = self.data.shape[0]
+        assert self.labels.shape[0] == self.ncells
+
+        max_dim = self.args.max_dim
+        if max_dim is not None and self.data.shape[1] > max_dim:
+            print(f"Warning: Clipping dimensionality from {self.data.shape[1]} to {max_dim}")
+            self.data = self.data[:, :max_dim]
+            if self.use_velocity:
+                self.velocity = self.velocity[:, :max_dim]
+
+
+class CustomAnnDataFromFile(CustomAnnData):
+    def __init__(self, name, args):
+        import scanpy as sc
+
+        adata = sc.read_h5ad(name)
+        super().__init__(adata, args)
+
 
 
 class EBData(SCData):
@@ -358,213 +396,6 @@ class EBData(SCData):
         return np.random.choice(arr, size=n)
 
 
-class ChafferData(EBData):
-    def __init__(self, embedding_name="pcs", max_dim=6, use_velocity=False, version=2):
-        self.embedding_name = embedding_name
-        self.use_velocity = use_velocity
-        if version == 2:
-            data_file = "../data/chaffer_v2.npz"
-        else:
-            raise ValueError("Unknown Version number")
-        self.load(data_file, max_dim)
-
-
-class WNVData(EBData):
-    def __init__(self, embedding_name="pcs", max_dim=6, use_velocity=False, version=1):
-        self.embedding_name = embedding_name
-        self.use_velocity = use_velocity
-        if version == 1:
-            data_file = "../data/wnv_v1.npz"
-        else:
-            raise ValueError("Unknown Version number")
-        self.load(data_file, max_dim)
-
-
-class NoonanData(EBData):
-    def __init__(self, embedding_name="pca", max_dim=2, use_velocity=True, version=1):
-        self.embedding_name = embedding_name
-        self.use_velocity = use_velocity
-        if version == 1:
-            data_file = "../data/noonan_v1.npz"
-            validation_data_file = "../data/noonan_val_v1.npz"
-        else:
-            raise ValueError("Unknown Version number")
-        self.load(data_file, validation_data_file, max_dim)
-
-    def has_validation_samples(self):
-        return True
-
-    def load(self, data_file, val_data_file, max_dim):
-        self.data_dict = np.load(data_file, allow_pickle=True)
-        self.val_data_dict = np.load(val_data_file, allow_pickle=True)
-
-        self.labels = self.data_dict["sample_labels"]
-        if ("X_%s" % self.embedding_name) not in self.data_dict.keys():
-            raise ValueError("Unknown embedding name %s" % self.embedding_name)
-        embedding = self.data_dict["X_%s" % self.embedding_name]
-        scaler = StandardScaler()
-        scaler.fit(embedding)
-        self.ncells = embedding.shape[0]
-        assert self.labels.shape[0] == self.ncells
-        # Scale so that embedding is normally distributed
-        self.data = scaler.transform(embedding)
-        self.val_data = scaler.transform(
-            self.val_data_dict["X_%s" % self.embedding_name]
-        )
-        self.val_labels = self.val_data_dict["sample_labels"]
-
-        if self.has_velocity() and self.use_velocity:
-            delta = self.data_dict["velocity_%s" % self.embedding_name]
-            assert delta.shape[0] == self.ncells
-            self.velocity = delta / scaler.scale_
-
-            # self.velocity = scaler.transform(delta)
-            if max_dim is not None and self.velocity.shape[1] > max_dim:
-                self.velocity = self.velocity[:, :max_dim]
-
-        # TODO remove this and allow for other dimensional datasets besides 2
-        if max_dim is not None and self.data.shape[1] > max_dim:
-            print("Warning: Clipping dimensionality to %d" % max_dim)
-            self.data = self.data[:, :max_dim]
-            self.val_data = self.val_data[:, :max_dim]
-
-
-class SchiebingerData(EBData):
-    """Load data from Schiebinger et al. (Cell 2019)
-    39 timepoint samples. original embedding uses a force directed layout
-    """
-
-    def __init__(self, embedding_name="phate", max_dim=None):
-        assert embedding_name in set(["phate", "original_embedding", "pcs"])
-        data_file = "../data/schiebinger.npz"
-        self.embedding_name = embedding_name
-        self.load(data_file, max_dim)
-
-    def has_velocity(self):
-        return False
-
-    def known_base_density(self):
-        return False
-
-
-class ClarkData(EBData):
-    def __init__(self, embedding_name="original_embedding", max_dim=None):
-        assert embedding_name in set(["phate", "original_embedding", "pcs"])
-        data_file = "../data/clark.npz"
-        self.embedding_name = embedding_name
-        self.load(data_file, max_dim)
-
-    def has_velocity(self):
-        return False
-
-    def known_base_density(self):
-        return False
-
-    def load(self, data_file, max_dim):
-        """Separates replicates from main trajectory.
-
-        TODO: There may be some leakage of replicates by the phate coordinates used
-        """
-        super().load(data_file, max_dim)
-        p = re.compile("rep2")
-        replicates = [s for s in np.unique(self.labels) if p.search(s) is not None]
-        replicate_indices = np.array([(s in replicates) for s in self.labels])
-        self.data = self.data[~replicate_indices]
-        self.labels = self.data_dict["times"][~replicate_indices]
-        self.ncells = np.sum(~replicate_indices)
-
-        # Mask out P cells
-        mask = self.labels < 10
-        self.data[mask]
-        self.labels[mask]
-        self.ncells = np.sum(mask)
-
-
-class CircleTestData(EBData):
-    """Implements the circle dataset"""
-
-    def __init__(self):
-        super().__init__()
-        np.random.seed(42)
-        n = 5000
-        r1, r2, r3 = (0.4, 0.1, 0.1)
-
-        self.labels = np.repeat(np.arange(3), n)
-        eps = np.random.randn(3 * n)
-        x = (self.labels * np.pi / 4) + np.pi / 4 + eps * r1
-        x2d = np.array([np.cos(x), np.sin(x)]).T
-        x2d += np.random.randn(*x2d.shape) * r2
-        self.data = x2d
-        self.ncells = self.data.shape[0]
-
-        next2d = np.array([np.cos(x + 0.3), np.sin(x + 0.3)]).T
-        next2d += np.random.randn(*next2d.shape) * r3
-        self.velocity = next2d - x2d
-
-    def has_velocity(self):
-        return True
-
-
-class CircleTestDataV2(EBData):
-    """Implements the circle dataset.
-
-    But has an anlalytical base density and two timepoints instead of 3.
-    """
-
-    def __init__(self):
-        super().__init__()
-        np.random.seed(42)
-        n = 5000
-        self.r1, self.r2, self.r3 = (0.25, 0.1, 0.1)
-        self.r1, self.r2, self.r3 = (0.4, 0.1, 0.1)
-
-        self.labels = np.repeat(np.arange(2), n)
-        theta = (self.labels * np.pi / 4) + np.pi / 2
-        theta += np.random.randn(*theta.shape) * self.r1
-        # Move set 0 to a weird place for verification
-        # TODO remove
-        # theta[self.labels == 0] += np.pi / 2
-        r = (1 + np.random.randn(*theta.shape) * self.r2)[:, None]
-        r = np.repeat(r, 2, axis=1)
-        x2d = np.array([np.cos(theta), np.sin(theta)]).T * r
-        # x2d[self.labels == 1] -= [0.7, 0.0]
-        self.data = x2d
-        self.ncells = self.data.shape[0]
-
-        next2d = np.array([np.cos(theta + 0.3), np.sin(theta + 0.3)]).T * r
-        next2d += np.random.randn(*next2d.shape) * self.r3
-        self.velocity = next2d - x2d
-
-    def base_density(self):
-        def logprob(z):
-            r = torch.sqrt(torch.sum(z.pow(2), 1))
-            theta = torch.atan2(z[:, 0], z[:, 1])
-            zp1 = (r - 1) / self.r2
-            zp2 = theta - np.pi / 4
-            zp2[zp2 > np.pi] -= 2 * np.pi
-            zp2[zp2 < -np.pi] += 2 * np.pi
-            zp2 = zp2 / self.r1
-            # Find Quadrant
-            logZ = -0.5 * math.log(2 * math.pi)
-            z_polar = torch.stack([zp1, zp2], 1)
-            return torch.sum(logZ - z_polar.pow(2) / 2, 1, keepdim=True)
-
-        return logprob
-
-    def base_sample(self):
-        def f(*args, **kwargs):
-            sample = torch.randn(*args, **kwargs)
-            theta = sample[:, 0] * self.r1 + np.pi / 4
-            r = (sample[:, 1] * self.r2 + 1)[:, None]
-            s = torch.stack([torch.cos(theta), torch.sin(theta)], 1) * r
-            return s
-
-        return f
-
-    def has_velocity(self):
-        return True
-
-
 class CircleTestDataV3(EBData):
     """Implements the curvy tree dataset.
 
@@ -648,55 +479,6 @@ class CircleTestDataV3(EBData):
         return True
 
 
-class CircleTestDataV4(CircleTestDataV3):
-    """BROKEN"""
-
-    def __init__(self):
-        super().__init__()
-        # self.velocity[:, 0] = -self.velocity[:, 0]
-        # self.data[:, 0] = -self.data[:, 0]
-        raise NotImplementedError("This version of the dataset is broken")
-
-    def base_density(self):
-        def logprob(z):
-            z = z * torch.tensor([-1, 1], dtype=torch.float32).to(z)[None, :]
-            # I no longer understand how this function works, but it looks right
-            r = torch.sqrt(torch.sum(z.pow(2), 1))
-            theta = torch.atan2(z[:, 0], -z[:, 1])
-            zp1 = (r - 1) / self.r2
-            zp2 = theta - np.pi / 2
-            # zp2 = (theta - np.pi / 4)
-            zp2[zp2 > np.pi] -= 2 * np.pi
-            zp2[zp2 < -np.pi] += 2 * np.pi
-            zp2 = zp2 / self.r1
-            # Find Quadrant
-            logZ = -0.5 * math.log(2 * math.pi)
-            z_polar = torch.stack([zp1, zp2], 1)
-            to_return = torch.sum(logZ - z_polar.pow(2) / 2, 1, keepdim=True)
-            to_return[zp2 < 0] += 20 * zp2[zp2 < 0][:, None]
-            # to_return[zp2 >= 0] -= 0    # Multiply in log space?
-            # to_return[zp2 < 0] += 50
-            # to_return[zp2 >= 0] -= 50    # Multiply in log space?
-            return to_return
-
-        return logprob
-
-    def known_base_density(self):
-        return True
-
-    def base_sample(self):
-        def f(*args, **kwargs):
-            sample = torch.randn(*args, **kwargs)
-            theta = sample[:, 0] * self.r1
-            r = (sample[:, 1] * self.r2 + 1)[:, None]
-            s = torch.stack([torch.cos(theta), torch.sin(theta)], 1) * r
-            s[s[:, 1] < 0] *= torch.tensor([1, -1], dtype=torch.float32)[None, :]
-            s = s * torch.tensor([-1, 1], dtype=torch.float32)[None, :]
-            return s
-
-        return f
-
-
 def interpolate_with_ot(p0, p1, tmap, interp_frac, size):
     """
     Interpolate between p0 and p1 at fraction t_interpolate knowing a transport map from p0 to p1
@@ -721,7 +503,6 @@ def interpolate_with_ot(p0, p1, tmap, interp_frac, size):
     p1 = p1.toarray() if scipy.sparse.isspmatrix(p1) else p1
     p0 = np.asarray(p0, dtype=np.float64)
     p1 = np.asarray(p1, dtype=np.float64)
-    print(p0.shape, p1.shape)
     tmap = np.asarray(tmap, dtype=np.float64)
     if p0.shape[1] != p1.shape[1]:
         raise ValueError("Unable to interpolate. Number of genes do not match")
@@ -1099,7 +880,3 @@ class SklearnData(SCData):
     def sample_index(self, n, label_subset):
         arr = np.arange(self.get_ncells())[self.get_times() == label_subset]
         return np.random.choice(arr, size=n)
-
-
-if __name__ == "__main__":
-    data = WNVData("pcs", max_dim=20)

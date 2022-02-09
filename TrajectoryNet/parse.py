@@ -115,3 +115,4 @@ parser.add_argument(
     default="pca",
     help="choose embedding name to perform TrajectoryNet on",
 )
+parser.add_argument("--whiten", action="store_true", help="Whiten data before running TrajectoryNet")
