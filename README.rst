@@ -34,7 +34,7 @@ Run with
 
 .. code-block:: bash
 
-    python -m TrajectoryNet.main --dataset EB
+    python -m TrajectoryNet.main --dataset SCURVE
 
 To use a custom dataset expose the coordinates and timepoint information according to the example jupyter notebooks in the `/notebooks/` folder.
 
