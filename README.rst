@@ -3,6 +3,17 @@ Pytorch Implementation of TrajectoryNet
 
 This library runs code associated with the TrajectoryNet paper [1].
 
+In brief, TrajectoryNet is a Continuous Normalizing Flow model which can
+perform dynamic optimal transport using energy regularization and / or a
+combination of velocity, density, and growth regularizations to better match
+cellular trajectories. 
+
+Our setting is similar to that of `WaddingtonOT
+<https://broadinstitute.github.io/wot/>`_. In that we have access to a bunch of
+population measurements of cells over time and would like to model the dynamics
+of cells over that time period. TrajectoryNet is trained end-to-end and is
+continuous both in gene space and in time.
+
 
 Installation
 ------------
@@ -36,15 +47,21 @@ Run with
 
     python -m TrajectoryNet.main --dataset SCURVE
 
-To use a custom dataset expose the coordinates and timepoint information according to the example jupyter notebooks in the `/notebooks/` folder.
+To run TrajectoryNet on the `S Curve` example in the paper.  To use a
+custom dataset expose the coordinates and timepoint information according
+to the example jupyter notebooks in the `/notebooks/` folder.
 
-TrajectoryNet requires the following:
+If you have an `AnnData` object then take a look at
+`notebooks/Example_Anndata_to_TrajectoryNet.ipynb
+<https://github.com/KrishnaswamyLab/TrajectoryNet/tree/master/notebooks>_`,
+which shows how to load one of the example `scvelo` anndata objects into
+TrajectoryNet. Alternatively you can use the custom (compressed) format for
+TrajectoryNet as described below.
+
+For this format TrajectoryNet requires the following:
 
 1. An embedding matrix titled `[embedding_name]` (Cells x Dimensions)
 2. A sample labels array titled `sample_labels` (Cells)
-3. (Optionally) a delta embedding representing RNA velocity titled `delta_[embedding_name]` (Cells x Dimensions)
-
-
 
 To run TrajectoryNet with a custom dataset use:
 
@@ -54,7 +71,8 @@ To run TrajectoryNet with a custom dataset use:
     python -m TrajectoryNet.eval --dataset [PATH_TO_NPZ_FILE] --embedding_name [EMBEDDING_NAME]
 
 
-See `notebooks/EB-Eval.ipynb` for an example on how to use TrajectoryNet on a PCA embedding to get trajectories in the gene space.
+See `notebooks/EB-Eval.ipynb` for an example on how to use TrajectoryNet on
+a PCA embedding to get trajectories in the gene space.
 
 
 References
@@ -67,7 +85,7 @@ If you found this library useful, please consider citing::
 
     @inproceedings{tong2020trajectorynet,
       title = {TrajectoryNet: A Dynamic Optimal Transport Network for Modeling Cellular Dynamics},
-      shorttitle = {{{TrajectoryNet}}},
+      shorttitle = {TrajectoryNet},
       booktitle = {Proceedings of the 37th International Conference on Machine Learning},
       author = {Tong, Alexander and Huang, Jessie and Wolf, Guy and {van Dijk}, David and Krishnaswamy, Smita},
       year = {2020}
