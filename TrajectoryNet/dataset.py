@@ -7,7 +7,6 @@ import math
 import numpy as np
 import torch
 import scipy.sparse
-import scanpy as sc
 
 
 from sklearn.preprocessing import StandardScaler
@@ -201,13 +200,14 @@ class CustomData(SCData):
         self.labels = self.data_dict["sample_labels"]
         if self.embedding_name not in self.data_dict.keys():
             raise ValueError("Unknown embedding name %s" % self.embedding_name)
-        embedding = self.data_dict[self.embedding_name]
-        scaler = StandardScaler()
-        scaler.fit(embedding)
-        self.ncells = embedding.shape[0]
+        self.data = self.data_dict[self.embedding_name]
+        if self.args.whiten:
+            scaler = StandardScaler()
+            scaler.fit(self.data)
+            self.data = scaler.transform(self.data)
+        self.ncells = self.data.shape[0]
         assert self.labels.shape[0] == self.ncells
         # Scale so that embedding is normally distributed
-        self.data = scaler.transform(embedding)
 
         delta_name = "delta_%s" % self.embedding_name
         if delta_name not in self.data_dict.keys():
@@ -217,10 +217,11 @@ class CustomData(SCData):
             )
             self.use_velocity = False
         else:
-            delta = self.data_dict[delta_name]
-            assert delta.shape[0] == self.ncells
+            self.velocity = self.data_dict[delta_name]
+            assert self.velocity.shape[0] == self.ncells
             # Normalize ignoring mean from embedding
-            self.velocity = delta / scaler.scale_
+            if self.args.whiten:
+                self.velocity = self.velocity / scaler.scale_
 
         if max_dim is not None and self.data.shape[1] > max_dim:
             print("Warning: Clipping dimensionality to %d" % max_dim)
@@ -302,6 +303,8 @@ class CustomAnnData(CustomData):
 
 class CustomAnnDataFromFile(CustomAnnData):
     def __init__(self, name, args):
+        import scanpy as sc
+
         adata = sc.read_h5ad(name)
         super().__init__(adata, args)
 
