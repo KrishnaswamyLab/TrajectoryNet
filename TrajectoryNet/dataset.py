@@ -7,7 +7,7 @@ import math
 import numpy as np
 import torch
 import scipy.sparse
-import scanpy
+import scanpy as sc
 
 
 from sklearn.preprocessing import StandardScaler
@@ -150,7 +150,12 @@ class SCData(object):
             return EBData("pcs", max_dim=args.max_dim)
 
         # If none of the above, we assume a path to a .npz file is supplied
-        return CustomData(name, args)
+        if name.endswith(".h5ad"):
+            return CustomAnnDataFromFile(name, args)
+        if name.endswith(".npz"):
+            return CustomData(name, args)
+        
+        raise KeyError(f"Unknown dataset name {name}")
 
 
 def _get_data_points(adata, basis) -> np.ndarray:
@@ -164,51 +169,24 @@ def _get_data_points(adata, basis) -> np.ndarray:
     else:
         raise KeyError(
             f"Could not find entry in `obsm` for '{basis}'.\n"
-            f"Available keys are: {list(adata.obsm.keys()}."
+            f"Available keys are: {list(adata.obsm.keys())}."
         )
 
-    return np.array(adata.obsm[basis_key])[:, offset : offset + n_dims]
+    data_points = np.array(adata.obsm[basis_key])
+    velocity_points = None
 
+    if f"velocity_{basis}" in adata.obsm.keys():
+        velocity_basis_key = f"velocity_{basis}"
+        velocity_points = np.array(adata.obsm[velocity_basis_key])
+    else:
+        print(
+            f"Could not find entry in `obsm` for 'velocity_{basis}'.\n"
+            f"Available keys are: {list(adata.obsm.keys())}.\n"
+            f"Assuming no velocity data."
+        )
 
-class CustomAnnData(CustomData):
-    def __init__(self, name, args):
-        super().__init__()
-        self.args = args
-        self.embedding_name = args.embedding_name
-        self.load(name, args.max_dim)
+    return data_points, velocity_points
 
-
-    def load(self, data_file, max_dim):
-        self.adata = sc.read_h5ad(data_file)
-        self.labels = self.data_dict["sample_labels"]
-        self.data = _get_data_points(self.adata, self.embedding_name)
-
-        if self.args.whiten:
-            scaler = StandardScaler()
-            scaler.fit(self.data)
-            self.data = scaler.transform(self.data)
-
-        self.ncells = self.data.shape[0]
-        assert self.labels.shape[0] == self.ncells
-
-        delta_name = "delta_%s" % self.embedding_name
-        if delta_name not in self.data_dict.keys():
-            print(
-                "No velocity found for embedding %s skipping velocity"
-                % self.embedding_name
-            )
-            self.use_velocity = False
-        else:
-            delta = self.data_dict[delta_name]
-            assert delta.shape[0] == self.ncells
-            # Normalize ignoring mean from embedding
-            self.velocity = delta / scaler.scale_
-
-        if max_dim is not None and self.data.shape[1] > max_dim:
-            print("Warning: Clipping dimensionality to %d" % max_dim)
-            self.data = self.data[:, :max_dim]
-            if self.use_velocity:
-                self.velocity = self.velocity[:, :max_dim]
 
 
 class CustomData(SCData):
@@ -291,6 +269,42 @@ class CustomData(SCData):
     def sample_index(self, n, label_subset):
         arr = np.arange(self.ncells)[self.labels == label_subset]
         return np.random.choice(arr, size=n)
+
+
+class CustomAnnData(CustomData):
+    def __init__(self, adata, args):
+        self.args = args
+        self.adata = adata
+        self.load()
+
+    def load(self):
+        self.labels = np.array(self.adata.obs["sample_labels"])
+        self.data, self.velocity = _get_data_points(self.adata, self.args.embedding_name)
+
+        if self.args.whiten:
+            scaler = StandardScaler()
+            scaler.fit(self.data)
+            self.data = scaler.transform(self.data)
+            if self.velocity is not None:
+                self.velocity = self.velocity / scaler.scale_
+        self.use_velocity = self.velocity is not None
+
+        self.ncells = self.data.shape[0]
+        assert self.labels.shape[0] == self.ncells
+
+        max_dim = self.args.max_dim
+        if max_dim is not None and self.data.shape[1] > max_dim:
+            print(f"Warning: Clipping dimensionality from {self.data.shape[1]} to {max_dim}")
+            self.data = self.data[:, :max_dim]
+            if self.use_velocity:
+                self.velocity = self.velocity[:, :max_dim]
+
+
+class CustomAnnDataFromFile(CustomAnnData):
+    def __init__(self, name, args):
+        adata = sc.read_h5ad(name)
+        super().__init__(adata, args)
+
 
 
 class EBData(SCData):
@@ -486,7 +500,6 @@ def interpolate_with_ot(p0, p1, tmap, interp_frac, size):
     p1 = p1.toarray() if scipy.sparse.isspmatrix(p1) else p1
     p0 = np.asarray(p0, dtype=np.float64)
     p1 = np.asarray(p1, dtype=np.float64)
-    print(p0.shape, p1.shape)
     tmap = np.asarray(tmap, dtype=np.float64)
     if p0.shape[1] != p1.shape[1]:
         raise ValueError("Unable to interpolate. Number of genes do not match")
