@@ -1,9 +1,9 @@
+from .optimal_transport.emd import earth_mover_distance
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import torch
-
-from .optimal_transport.emd import earth_mover_distance
 
 
 def generate_samples(device, args, model, growth_model, n=10000, timepoint=None):
@@ -87,8 +87,9 @@ def calculate_path_length(device, args, model, data, end_time, n_pts=10000):
         z_diff = np.diff(z, axis=0)
         z_lengths = np.sum(np.linalg.norm(z_diff, axis=-1), axis=0)
         total_length = np.mean(z_lengths)
-        import ot as pot
         from scipy.spatial.distance import cdist
+
+        import ot as pot
 
         emd = pot.emd2(
             np.ones(n_pts) / n_pts,

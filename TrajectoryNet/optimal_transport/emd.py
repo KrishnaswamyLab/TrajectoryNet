@@ -1,7 +1,8 @@
+from sklearn.metrics.pairwise import pairwise_distances
+
 import numpy as np
 import ot as pot  # Python Optimal Transport package
 import scipy.sparse
-from sklearn.metrics.pairwise import pairwise_distances
 
 
 def earth_mover_distance(

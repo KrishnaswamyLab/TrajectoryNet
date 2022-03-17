@@ -1,6 +1,7 @@
+from torch.nn import Parameter
+
 import torch
 import torch.nn as nn
-from torch.nn import Parameter
 
 __all__ = ['MovingBatchNorm1d', 'MovingBatchNorm2d']
 

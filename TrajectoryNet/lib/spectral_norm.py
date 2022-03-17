@@ -1,9 +1,10 @@
 """
 Spectral Normalization from https://arxiv.org/abs/1802.05957
 """
-import types
-import torch
 from torch.nn.functional import normalize
+
+import torch
+import types
 
 POWER_ITERATION_FN = "spectral_norm_power_iteration"
 

@@ -1,7 +1,8 @@
+from torch.autograd import grad
+
 import math
 import torch
 import torch.nn as nn
-from torch.autograd import grad
 
 
 class PlanarFlow(nn.Module):

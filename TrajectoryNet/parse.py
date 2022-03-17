@@ -1,5 +1,6 @@
-import argparse
 from .lib.layers import odefunc
+
+import argparse
 
 SOLVERS = ["dopri5", "bdf", "rk4", "midpoint", "adams", "explicit_adams", "fixed_adams"]
 

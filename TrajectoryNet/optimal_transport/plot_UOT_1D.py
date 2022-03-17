@@ -12,11 +12,12 @@ using a Kullback-Leibler relaxation.
 #
 # License: MIT License
 
-import numpy as np
+from ot.datasets import make_1D_gauss as gauss
+
 import matplotlib.pylab as pl
+import numpy as np
 import ot
 import ot.plot
-from ot.datasets import make_1D_gauss as gauss
 
 ##############################################################################
 # Generate data

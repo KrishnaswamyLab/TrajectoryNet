@@ -1,7 +1,7 @@
+from .wrappers import diffeq_wrapper
+
 import torch
 import torch.nn as nn
-
-from .wrappers import diffeq_wrapper
 
 
 class SequentialDiffEq(nn.Module):

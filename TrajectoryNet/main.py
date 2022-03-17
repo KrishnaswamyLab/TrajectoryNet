@@ -3,43 +3,37 @@
 Learns ODE from scrna data
 
 """
-import os
+from initialize_growth_net import init_growth_net
+from TrajectoryNet import dataset
+from TrajectoryNet.lib import utils
+from TrajectoryNet.lib.growth_net import GrowthNet
+from TrajectoryNet.lib.visualize_flow import visualize_transform
+from TrajectoryNet.lib.viz_scrna import save_trajectory
+from TrajectoryNet.lib.viz_scrna import save_trajectory_density
+from TrajectoryNet.lib.viz_scrna import save_vectors
+from TrajectoryNet.lib.viz_scrna import trajectory_to_video
+from TrajectoryNet.parse import parser
+
+# from train_misc import standard_normal_logprob
+from TrajectoryNet.train_misc import add_spectral_norm
+from TrajectoryNet.train_misc import append_regularization_to_log
+from TrajectoryNet.train_misc import build_model_tabular
+from TrajectoryNet.train_misc import count_nfe
+from TrajectoryNet.train_misc import count_parameters
+from TrajectoryNet.train_misc import count_total_time
+from TrajectoryNet.train_misc import create_regularization_fns
+from TrajectoryNet.train_misc import get_regularization
+from TrajectoryNet.train_misc import set_cnf_options
+from TrajectoryNet.train_misc import spectral_norm_power_iteration
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import time
-
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-
-from TrajectoryNet.lib.growth_net import GrowthNet
-from TrajectoryNet.lib import utils
-from TrajectoryNet.lib.visualize_flow import visualize_transform
-from TrajectoryNet.lib.viz_scrna import (
-    save_trajectory,
-    trajectory_to_video,
-    save_vectors,
-)
-from TrajectoryNet.lib.viz_scrna import save_trajectory_density
-
-
-# from train_misc import standard_normal_logprob
-from TrajectoryNet.train_misc import (
-    set_cnf_options,
-    count_nfe,
-    count_parameters,
-    count_total_time,
-    add_spectral_norm,
-    spectral_norm_power_iteration,
-    create_regularization_fns,
-    get_regularization,
-    append_regularization_to_log,
-    build_model_tabular,
-)
-
-from TrajectoryNet import dataset
-from TrajectoryNet.parse import parser
 
 matplotlib.use("Agg")
 
@@ -500,10 +494,19 @@ def main(args):
     growth_model = None
     if args.use_growth:
         if args.leaveout_timepoint == -1:
-            growth_model_path = "../data/externel/growth_model_v2.ckpt"
+            if args.cached_growth_model is None:
+                logger.info("Initializing growth model")
+                growth_model = init_growth_net(args).to(device)
+            else:
+                logger.info("Loading growth model from: %s" % args.cached_growth_model)
+                growth_model = torch.load(args.cached_growth_model, map_location=device)
         elif args.leaveout_timepoint in [1, 2, 3]:
             assert args.max_dim == 5
-            growth_model_path = "../data/growth/model_%d" % args.leaveout_timepoint
+            growth_model_path = (
+                "../data/growth/model_%d"
+                % args.leaveout_timepoint
+            )
+            growth_model = torch.load(growth_model_path, map_location=device)
         else:
             print("WARNING: Cannot use growth with this timepoint")
 

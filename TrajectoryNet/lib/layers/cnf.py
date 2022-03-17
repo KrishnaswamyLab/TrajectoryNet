@@ -1,9 +1,8 @@
-import torch
-import torch.nn as nn
-
+from .wrappers.cnf_regularization import RegularizedODEfunc
 from torchdiffeq import odeint_adjoint as odeint
 
-from .wrappers.cnf_regularization import RegularizedODEfunc
+import torch
+import torch.nn as nn
 
 __all__ = ["CNF"]
 

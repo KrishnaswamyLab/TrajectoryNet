@@ -1,7 +1,7 @@
-import torch.nn as nn
-
 from . import basic
 from . import container
+
+import torch.nn as nn
 
 NGROUPS = 16
 

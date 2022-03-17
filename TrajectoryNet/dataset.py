@@ -3,13 +3,12 @@
 Loads datasets into uniform format for learning continuous flows
 
 """
+from sklearn.preprocessing import StandardScaler
+
 import math
 import numpy as np
-import torch
 import scipy.sparse
-
-
-from sklearn.preprocessing import StandardScaler
+import torch
 
 
 class SCData(object):
@@ -78,8 +77,8 @@ class SCData(object):
         plt.show()
 
     def plot_data(self):
-        import scprep
         import matplotlib.pyplot as plt
+        import scprep
 
         nbase = 5000
         all_data = np.concatenate(

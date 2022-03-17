@@ -1,11 +1,11 @@
-import os
 import math
-import numpy as np
 import matplotlib
+import numpy as np
+import os
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import torch
-
 
 # def standard_normal_logprob(z):
 #     logZ = -0.5 * math.log(2 * math.pi)
@@ -511,10 +511,13 @@ if __name__ == '__main__':
 
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')))
 
-    import lib.toy_data as toy_data
-    from train_misc import count_parameters
-    from train_misc import set_cnf_options, add_spectral_norm, create_regularization_fns
+    from train_misc import add_spectral_norm
     from train_misc import build_model_tabular
+    from train_misc import count_parameters
+    from train_misc import create_regularization_fns
+    from train_misc import set_cnf_options
+
+    import lib.toy_data as toy_data
 
     def get_ckpt_model_and_data(args):
         # Load checkpoint.

@@ -1,31 +1,28 @@
-import os
-import numpy as np
-import torch
-import matplotlib.pyplot as plt
-import matplotlib
-
-from TrajectoryNet import dataset, eval_utils
-from TrajectoryNet.parse import parser
+from TrajectoryNet import dataset
+from TrajectoryNet import eval_utils
 from TrajectoryNet.lib.growth_net import GrowthNet
-from TrajectoryNet.lib.viz_scrna import trajectory_to_video, save_vectors
-from TrajectoryNet.lib.viz_scrna import (
-    save_trajectory_density,
-    save_2d_trajectory,
-    save_2d_trajectory_v2,
-)
+from TrajectoryNet.lib.viz_scrna import save_2d_trajectory
+from TrajectoryNet.lib.viz_scrna import save_2d_trajectory_v2
+from TrajectoryNet.lib.viz_scrna import save_trajectory_density
+from TrajectoryNet.lib.viz_scrna import save_vectors
+from TrajectoryNet.lib.viz_scrna import trajectory_to_video
+from TrajectoryNet.parse import parser
+from TrajectoryNet.train_misc import add_spectral_norm
+from TrajectoryNet.train_misc import append_regularization_to_log
+from TrajectoryNet.train_misc import build_model_tabular
+from TrajectoryNet.train_misc import count_nfe
+from TrajectoryNet.train_misc import count_parameters
+from TrajectoryNet.train_misc import count_total_time
+from TrajectoryNet.train_misc import create_regularization_fns
+from TrajectoryNet.train_misc import get_regularization
+from TrajectoryNet.train_misc import set_cnf_options
+from TrajectoryNet.train_misc import spectral_norm_power_iteration
 
-from TrajectoryNet.train_misc import (
-    set_cnf_options,
-    count_nfe,
-    count_parameters,
-    count_total_time,
-    add_spectral_norm,
-    spectral_norm_power_iteration,
-    create_regularization_fns,
-    get_regularization,
-    append_regularization_to_log,
-    build_model_tabular,
-)
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import torch
 
 
 def makedirs(dirname):

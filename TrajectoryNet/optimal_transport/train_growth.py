@@ -1,13 +1,14 @@
+from scipy.spatial.distance import cdist
+from sinkhorn_knopp_unbalanced import sinkhorn_knopp_unbalanced
+from sklearn.preprocessing import StandardScaler
+
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from scipy.spatial.distance import cdist
 import scprep
 import torch
 
 # import atongtf.dataset as atd
 
-from sinkhorn_knopp_unbalanced import sinkhorn_knopp_unbalanced
 
 
 def load_data_full():
@@ -152,8 +153,8 @@ for i, tp in enumerate(np.linspace(0, 3, 100)):
 
 
 def trajectory_to_video(savedir):
-    import subprocess
     import os
+    import subprocess
 
     bashCommand = "ffmpeg -y -i {} {}".format(
         os.path.join(savedir, "viz-%05d.jpg"), os.path.join(savedir, "traj.mp4")
