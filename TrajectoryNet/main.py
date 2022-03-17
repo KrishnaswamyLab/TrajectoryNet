@@ -389,6 +389,10 @@ def plot_output(device, args, model):
     # idx = args.data.sample_index(50, 0)
     # start_points = args.data.get_data()[idx]
     # start_points = torch.from_numpy(start_points).type(torch.float32)
+    xlim = (-1.0093588286381778, 3.2921209237266367)
+    ylim = (-1.9128630086686986, 2.91293875215532)
+    xlim = (-15.847818629952187, 2.3514015382584548)
+    ylim = (-6.669826078378606, 13.240507707920244)
     save_vectors(
         args.data.base_density(),
         model,
@@ -406,10 +410,13 @@ def plot_output(device, args, model):
         args.data.base_sample(),
         model,
         data_samples,
+        xlim,
+        ylim,
         save_traj_dir,
         device=device,
         end_times=args.int_tps,
         ntimes=25,
+        memory=0.2,
     )
     trajectory_to_video(save_traj_dir)
 
@@ -418,13 +425,43 @@ def plot_output(device, args, model):
         args.data.base_density(),
         model,
         data_samples,
+        xlim,
+        ylim,
         density_dir,
         device=device,
         end_times=args.int_tps,
         ntimes=25,
-        memory=0.1,
+        memory=0.2,
     )
     trajectory_to_video(density_dir)
+
+
+def integrate_backwards(
+    end_samples, model, args, ntimes=100, memory=0.1, device="cpu"
+):
+    """Integrate some samples backwards and save the results."""
+    with torch.no_grad():
+        z = torch.from_numpy(end_samples).type(torch.float32).to(device)
+        z = z[:100]
+        zero = torch.zeros(z.shape[0], 1).to(z)
+        cnf = model.chain[0]
+        zs = [z]
+        deltas = []
+        for i, (itp, tp) in enumerate(zip(args.int_tps[::-1], args.timepoints[::-1])):
+            # tp counts down from last
+            integration_times = torch.tensor([itp - args.time_scale, itp])
+            integration_times = integration_times.type(torch.float32).to(device)
+            integration_times = torch.linspace(integration_times[0], integration_times[1], 3).to(device)
+            #integration_times = torch.linspace(integration_times[0], integration_times[1], 100 // (len(args.int_tps) - 1)).to(device)
+
+            print(integration_times)
+            # transform to previous timepoint
+            z, delta_logp = cnf(zs[-1], zero, integration_times=integration_times)
+            zs.append(z)
+            deltas.append(delta_logp)
+        zs = torch.stack(zs, 0)
+        zs = zs.cpu().numpy()
+        np.save(os.path.join(args.save, "backward_trajectories.npy"), zs)
 
 
 def main(args):
@@ -507,7 +544,11 @@ def main(args):
         )
 
     if args.data.data.shape[1] == 2:
-        plot_output(device, args, model)
+        # plot_output(device, args, model)
+        end_time_data = args.data.get_data()[
+            args.data.get_times() == np.max(args.data.get_times())
+        ]
+        integrate_backwards(end_time_data, model, args, ntimes=100, device=device)
 
 
 if __name__ == "__main__":

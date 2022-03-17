@@ -116,3 +116,4 @@ parser.add_argument(
     help="choose embedding name to perform TrajectoryNet on",
 )
 parser.add_argument("--whiten", action="store_true", help="Whiten data before running TrajectoryNet")
+parser.add_argument("--new_whiten", action="store_true", help="Whiten first timepoint data before running TrajectoryNet")

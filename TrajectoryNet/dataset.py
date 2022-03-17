@@ -288,6 +288,12 @@ class CustomAnnData(CustomData):
             self.data = scaler.transform(self.data)
             if self.velocity is not None:
                 self.velocity = self.velocity / scaler.scale_
+        if self.args.new_whiten:
+            scaler = StandardScaler()
+            scaler.fit(self.data[self.labels == np.unique(self.labels)[0]])
+            self.data = scaler.transform(self.data)
+            if self.velocity is not None:
+                self.velocity = self.velocity / scaler.scale_
         self.use_velocity = self.velocity is not None
 
         self.ncells = self.data.shape[0]
