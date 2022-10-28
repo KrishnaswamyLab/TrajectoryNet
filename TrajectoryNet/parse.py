@@ -116,3 +116,4 @@ parser.add_argument(
     help="choose embedding name to perform TrajectoryNet on",
 )
 parser.add_argument("--whiten", action="store_true", help="Whiten data before running TrajectoryNet")
+parser.add_argument("--save_movie", action="store_false", help="Construct trajectory movie, requires ffmpeg to be installed")

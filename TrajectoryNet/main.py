@@ -401,6 +401,7 @@ def plot_output(device, args, model):
         end_times=args.int_tps,
         ntimes=100,
     )
+    
     save_trajectory(
         args.data.base_density(),
         args.data.base_sample(),
@@ -411,8 +412,7 @@ def plot_output(device, args, model):
         end_times=args.int_tps,
         ntimes=25,
     )
-    trajectory_to_video(save_traj_dir)
-
+    
     density_dir = os.path.join(args.save, "density2")
     save_trajectory_density(
         args.data.base_density(),
@@ -424,7 +424,10 @@ def plot_output(device, args, model):
         ntimes=25,
         memory=0.1,
     )
-    trajectory_to_video(density_dir)
+    
+    if args.save_movie:
+        trajectory_to_video(save_traj_dir)
+        trajectory_to_video(density_dir)
 
 
 def main(args):
