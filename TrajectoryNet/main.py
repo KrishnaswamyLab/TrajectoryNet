@@ -214,6 +214,12 @@ def compute_loss(device, args, model, growth_model, logger, full_data):
         density_loss = torch.mean(values)
         print("Density Loss", density_loss.item())
         losses += density_loss * args.top_k_reg
+        
+        #if args.sparsity_reg:
+            # Take the product of the weight matrices, sum up absolute values (L1 norm)
+            
+            
+            
     losses += interp_loss
     return losses
 
@@ -515,5 +521,6 @@ def main(args):
 
 if __name__ == "__main__":
 
+    print("Running local version of TrajectoryNet...")
     args = parser.parse_args()
     main(args)

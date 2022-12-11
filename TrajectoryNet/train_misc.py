@@ -165,7 +165,9 @@ def get_regularization(model, regularization_coeffs):
 def build_model_tabular(args, dims, regularization_fns=None):
 
     hidden_dims = tuple(map(int, args.dims.split("-")))
-
+    
+    print("LAYER TYPE: ", args.layer_type)
+    
     def build_cnf():
         diffeq = layers.ODEnet(
             hidden_dims=hidden_dims,

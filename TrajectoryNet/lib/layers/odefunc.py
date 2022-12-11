@@ -26,7 +26,6 @@ def divergence_bf(dx, y, **unused_kwargs):
 
 def _get_minibatch_jacobian(y, x):
     """Computes the Jacobian of y wrt x assuming minibatch-mode.
-
     Args:
       y: (N, ...) with a total of D_y elements in ...
       x: (N, ...) with a total of D_x elements in ...
@@ -125,6 +124,7 @@ class ODEnet(nn.Module):
                 "concatsquash": diffeq_layers.ConcatSquashLinear,
                 "blend": diffeq_layers.BlendLinear,
                 "concatcoord": diffeq_layers.ConcatLinear,
+                "pathreg": diffeq_layers.L0Dense,
             }[layer_type]
 
         # build layers and add them

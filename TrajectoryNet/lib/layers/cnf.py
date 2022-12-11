@@ -33,6 +33,7 @@ class CNF(nn.Module):
 
     def forward(self, z, logpz=None, integration_times=None, reverse=False):
 
+        
         if logpz is None:
             _logpz = torch.zeros(z.shape[0], 1).to(z)
         else:
