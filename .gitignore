@@ -99,3 +99,4 @@ target/
 
 # Snakemake cache
 .snakemake/
+*.out
